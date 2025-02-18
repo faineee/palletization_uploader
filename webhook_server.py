@@ -31,20 +31,19 @@ def calculate_price(data):
         return jsonify({'error': f"An unexpected error occurred - {e}, data: {data}"}), 500
 
 
-@app.route('/upload_data', methods=['POST'])
+@app.route('/', methods=['POST']) #Handles POST requests to the root URL
 def upload_data():
     try:
         data = request.get_json()
         total_cost = calculate_price(data)
-        if isinstance(total_cost, str): #Check if calculate_price returned an error string
-            return total_cost #Return the error response directly
+        if isinstance(total_cost, tuple):
+            return total_cost
         identifier = str(uuid.uuid4())
         return jsonify({'total_cost': total_cost, 'identifier': identifier})
     except json.JSONDecodeError:
         return jsonify({'error': 'Invalid JSON data'}), 400
     except Exception as e:
         return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
-
 
 port = int(os.environ.get("PORT", 5000))
 
