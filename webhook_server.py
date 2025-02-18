@@ -38,6 +38,7 @@ def calculate_price(data):
     except Exception as e:
         return f"Pricing error: An unexpected error occurred - {e}, data: {data}"
 
+port = int(os.environ.get("PORT", 5000))
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000) # Run the Flask app on port 5000
+if __name__ == "__main__":
+    app.run(debug=False, host='0.0.0.0', port=port) # Run the Flask app, but only if this script is run directly.
