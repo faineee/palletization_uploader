@@ -5,6 +5,12 @@ import uuid
 
 app = Flask(__name__)
 
+# --- Configuration ---
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET") #Get this from a secure environment variable
+if not WEBHOOK_SECRET:
+    raise ValueError("WEBHOOK_SECRET environment variable must be set.")
+
+
 def calculate_price(data):
     """Calculates the price based on the input data."""
     try:
@@ -30,6 +36,15 @@ def calculate_price(data):
     except Exception as e:
         return jsonify({'error': f"An unexpected error occurred - {e}, data: {data}"}), 500
 
+def verify_webhook_signature(request, secret):
+    """Verifies the webhook signature to prevent unauthorized access."""
+    signature = request.headers.get('X-Webhook-Signature')
+    if not signature:
+        return False
+
+    body = request.get_data()
+    expected_signature = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(signature, expected_signature)
 
 @app.route('/', methods=['POST', 'GET', 'HEAD'])  # Handles POST, GET, and HEAD requests to /
 def upload_data():
@@ -50,6 +65,23 @@ def upload_data():
     elif request.method == 'HEAD':
         return '', 200  # Return an empty response with 200 OK status
 
+@app.route('/webhook', methods=['POST']) #New Webhook endpoint
+def webhook():
+    if not verify_webhook_signature(request, WEBHOOK_SECRET):
+        return jsonify({'error': 'Invalid webhook signature'}), 403 #Unauthorized
+
+    try:
+        data = request.get_json()
+        # Process the data received from the webhook
+        total_cost = calculate_price(data)
+        if isinstance(total_cost, tuple): #Handle errors from calculate_price
+            return total_cost #Return the error response
+        # ... perform database operations or other actions ...
+        return jsonify({'message': 'Webhook data processed successfully'}), 200
+    except json.JSONDecodeError:
+        return jsonify({'error': 'Invalid JSON data'}), 400
+    except Exception as e:
+        return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
 
 port = int(os.environ.get("PORT", 5000))
 
