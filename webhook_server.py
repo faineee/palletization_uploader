@@ -54,18 +54,27 @@ def upload_data():
         try:
             data = request.get_json()
             total_cost = calculate_price(data)
-            if isinstance(total_cost, tuple):  # Check for error tuples from calculate_price
+            if isinstance(total_cost, tuple):
                 return total_cost
-            identifier = str(uuid.uuid4())
-            return jsonify({'total_cost': total_cost, 'identifier': identifier})
+
+            # Include all necessary keys in the response
+            response_data = {
+                'total_cost': total_cost,
+                'identifier': str(uuid.uuid4()),
+                'am_pm': data.get('am_pm'), #Use get() to handle missing keys gracefully
+                'do_number': data.get('do_number'),
+                'num_pallets': data.get('num_pallets'),
+                'delivery_date': data.get('delivery_date'),
+                'bu': data.get('bu'),
+                'customer_name': data.get('customer_name'),
+            }
+
+            return jsonify(response_data) #Send the complete response
+
         except json.JSONDecodeError:
             return jsonify({'error': 'Invalid JSON data'}), 400
         except Exception as e:
             return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
-    elif request.method == 'GET':
-        return jsonify({'message': 'This is a GET request to the root URL'}) # Or a more appropriate response
-    elif request.method == 'HEAD':
-        return '', 200  # Return an empty response with 200 OK status
 
 @app.route('/webhook', methods=['POST']) #New Webhook endpoint
 def webhook():
