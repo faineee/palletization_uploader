@@ -48,33 +48,35 @@ def verify_webhook_signature(request, secret):
     expected_signature = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(signature, expected_signature)
 
-@app.route('/', methods=['POST', 'GET', 'HEAD'])  # Handles POST, GET, and HEAD requests to /
+@app.route('/', methods=['POST', 'GET', 'HEAD'])
 def upload_data():
     if request.method == 'POST':
         try:
             data = request.get_json()
             total_cost = calculate_price(data)
-            if isinstance(total_cost, tuple):
-                return total_cost
+            if isinstance(total_cost, tuple): #Handle errors from calculate_price
+                return total_cost #Return the error response
 
-            # Include all necessary keys in the response
             response_data = {
                 'total_cost': total_cost,
                 'identifier': str(uuid.uuid4()),
-                'am_pm': data.get('am_pm'), #Use get() to handle missing keys gracefully
+                'am_pm': data.get('am_pm'),
                 'do_number': data.get('do_number'),
                 'num_pallets': data.get('num_pallets'),
                 'delivery_date': data.get('delivery_date'),
                 'bu': data.get('bu'),
                 'customer_name': data.get('customer_name'),
             }
-
-            return jsonify(response_data) #Send the complete response
+            return jsonify(response_data)
 
         except json.JSONDecodeError:
             return jsonify({'error': 'Invalid JSON data'}), 400
         except Exception as e:
             return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
+    elif request.method == 'GET':
+        return jsonify({'message': 'This is a GET request to the root URL'}), 200 #Corrected response
+    elif request.method == 'HEAD':
+        return '', 200  #This is correct
 
 @app.route('/webhook', methods=['POST']) #New Webhook endpoint
 def webhook():
